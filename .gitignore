@@ -1,0 +1,59 @@
+# Unreal Engine intermediate and build files
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vscode/
+.vs/
+*.VC.db
+*.VC.opendb
+
+# Unreal build artifacts
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+*.opensdf
+*.sdf
+*.sln.docstates
+
+# Unreal user-specific configuration
+*.user
+*.userprefs
+*.log
+*.tlog
+
+# Platform-specific folders
+Build/Win64/*
+Build/Win32/*
+Build/Mac/*
+
+# Ignore auto-generated plugins content
+Plugins/*/Intermediate/
+Plugins/*/Binaries/
+Plugins/*/Saved/
+
+# Ignore generated project files (regenerate via right-click .uproject → Generate)
+*.xcodeproj
+*.xcworkspace
+*.sln
+*.suo
+
+# Ignore temporary files
+.DS_Store
+Thumbs.db
+
+# If using Rider or CLion
+.idea/
+
+# If using Visual Studio Code
+.vscode/
+
+# Optional: Ignore packaged builds
+WindowsNoEditor/
+LinuxNoEditor/
+MacNoEditor/
+
+# Optional: Ignore crash reports
+*.dmp
+*.mdmp
