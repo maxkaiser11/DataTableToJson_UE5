@@ -23,12 +23,7 @@ void UDataReaderComponent::BeginPlay()
 	Super::BeginPlay();
 
 	const FString Json = DataTableToJsonString(true);
-	if (GEngine)
-	{
-		const FString Preview = Json.Left(500);
-		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Cyan, Preview);
-	}
-
+	PrintTableRows();
 	SaveDataTableJsonToDisk(Json);
 	
 }
@@ -36,28 +31,10 @@ void UDataReaderComponent::BeginPlay()
 
 void UDataReaderComponent::PrintTableRows()
 {
-	if (!MyDataTable)
+	FString JsonString = DataTableToJsonString(false);
+	if (GEngine)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No DataTable assigned!"));
-		return;
-	}
-
-	static const FString Context(TEXT("MyDataTableContext"));
-
-	// Get all rows AND their row names
-	TArray<FName> RowNames = MyDataTable->GetRowNames();
-
-	for (const FName& RowName : RowNames)
-	{
-		if (FMyDataRow* Row = MyDataTable->FindRow<FMyDataRow>(RowName, Context))
-		{
-			FString Msg = FString::Printf(TEXT("Make: %s | Modle: %s | Speed: %.2f"), *Row->Make, *Row->Model, Row->Speed);
-
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Green, Msg);
-			}
-		}
+		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Cyan, JsonString);
 	}
 }
 
