@@ -12,18 +12,12 @@
 #include "JsonObjectConverter.h"
 
 
-// Sets default values for this component's properties
 UDataReaderComponent::UDataReaderComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
-// Called when the game starts
 void UDataReaderComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -31,7 +25,6 @@ void UDataReaderComponent::BeginPlay()
 	const FString Json = DataTableToJsonString(true);
 	if (GEngine)
 	{
-		// Show first 4 lines to avoid spamming (optional)
 		const FString Preview = Json.Left(500);
 		GEngine->AddOnScreenDebugMessage(-1, 8.f, FColor::Cyan, Preview);
 	}
@@ -40,15 +33,6 @@ void UDataReaderComponent::BeginPlay()
 	
 }
 
-
-// Called every frame
-void UDataReaderComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                         FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
 
 void UDataReaderComponent::PrintTableRows()
 {
@@ -84,39 +68,41 @@ FString UDataReaderComponent::DataTableToJsonString(bool bIncludeRowName) const
 		return TEXT("[]");
 	}
 
-	// Gather row names so we can include them in output
-	const TArray<FName> RowNames = MyDataTable->GetRowNames();
-
-	// We'll build a JSON array of objects
-	TArray<TSharedPtr<FJsonValue>> JsonArray;
-
-	static const FString Ctx(TEXT("MyDataTableToJson"));
-
-	for (const FName& RowName : RowNames)
+	const UScriptStruct* RowStruct = MyDataTable->GetRowStruct();
+	if (!RowStruct)
 	{
-		if (const FMyDataRow* Row = MyDataTable->FindRow<FMyDataRow>(RowName, Ctx))
-		{
-			// Convert the row struct to a JSON object
-			TSharedRef<FJsonObject> RowObject = MakeShared<FJsonObject>();
-			// Put the struct fields
-			FJsonObjectConverter::UStructToJsonObject(
-				FMyDataRow::StaticStruct(),
-				Row,
-				RowObject,
-				/*CheckFlags*/0, /*SkipFlags*/0
-			);
-
-			// Optionally add the row key
-			if (bIncludeRowName)
-			{
-				RowObject->SetStringField(TEXT("RowName"), RowName.ToString());
-			}
-
-			JsonArray.Add(MakeShared<FJsonValueObject>(RowObject));
-		}
+		return TEXT("[]");
 	}
 
-	// Serialize the array to a compact JSON string
+	// Access the raw row map (RowName -> row bytes)
+	const TMap<FName, uint8*>& RowMap = MyDataTable->GetRowMap();
+
+	TArray<TSharedPtr<FJsonValue>> JsonArray;
+	JsonArray.Reserve(RowMap.Num());
+
+	for (const TPair<FName, uint8*>& Pair : RowMap)
+	{
+		const FName& RowName = Pair.Key;
+		const uint8* RowData = Pair.Value;
+
+		TSharedRef<FJsonObject> RowObject = MakeShared<FJsonObject>();
+
+		// Convert using the actual struct type
+		if (!FJsonObjectConverter::UStructToJsonObject(RowStruct, RowData, RowObject, /*CheckFlags*/0, /*SkipFlags*/0))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UStructToJsonObject failed for row '%s'"), *RowName.ToString());
+			continue;
+		}
+
+		if (bIncludeRowName)
+		{
+			RowObject->SetStringField(TEXT("RowName"), RowName.ToString());
+		}
+
+		JsonArray.Add(MakeShared<FJsonValueObject>(RowObject));
+	}
+
+	// Serialize the array (compact)
 	FString OutJson;
 	using FWriter = TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>;
 	TSharedRef<FWriter> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&OutJson);
